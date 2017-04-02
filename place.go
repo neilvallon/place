@@ -1,41 +1,61 @@
-package main
+package place
 
 import (
 	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"image"
 	"image/color"
-	"image/png"
 	"io"
-	"log"
 	"net/http"
-	"os"
-	"time"
 )
 
-func main() {
-	img, err := GetBitmap()
+const (
+	infoURL = "https://www.reddit.com/api/place/pixel.json"
+	bmpURL  = "https://www.reddit.com/api/place/board-bitmap"
+)
+
+func GetPixel(x, y int) (*Info, error) {
+	query := fmt.Sprintf("?x=%d&y=%d", x, y)
+
+	res, err := http.Get(infoURL + query)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	f, err := os.Create(fmt.Sprintf("place-%d.png", time.Now().UnixNano()))
-	if err != nil {
-		log.Fatal(err)
+	if res.StatusCode != http.StatusOK {
+		return nil, errors.New(res.Status)
 	}
 
-	if err := png.Encode(f, img); err != nil {
-		f.Close()
-		log.Fatal(err)
+	defer res.Body.Close()
+
+	var inf Info
+	if err := json.NewDecoder(res.Body).Decode(&inf); err != nil {
+		return nil, err
 	}
 
-	if err := f.Close(); err != nil {
-		log.Fatal(err)
-	}
+	return &inf, nil
 }
 
-const bmpURL = "https://www.reddit.com/api/place/board-bitmap"
+type Info struct {
+	Username  string  `json:"user_name"`
+	Timestamp float64 `json:"timestamp"`
+
+	Pixel
+}
+
+type Pixel struct {
+	Y     int          `json:"y"`
+	X     int          `json:"x"`
+	Color paletteIndex `json:"color"`
+}
+
+type paletteIndex int
+
+func (i paletteIndex) Color() color.Color {
+	return DefaultColorPalette[i]
+}
 
 func GetBitmap() (image.Image, error) {
 	res, err := http.Get(bmpURL)
