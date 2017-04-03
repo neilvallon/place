@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	timeURL = "https://oauth.reddit.com/api/place/time.json"
-	drawURL = "https://oauth.reddit.com/api/place/draw.json"
+	timeURL = "https://www.reddit.com/api/place/time.json"
+	drawURL = "https://www.reddit.com/api/place/draw.json"
 )
 
 type Client struct {
